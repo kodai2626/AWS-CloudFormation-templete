@@ -1,0 +1,6 @@
+# AWS-CloudFormation-templete
+private or job
+
+プライベートでの検証結果やCfnファイルをここに上げていく
+実務で使えそうであれば積極的に活用していく
+Cfn作業での実績を適宜ここにアップすること

@@ -1,0 +1,143 @@
+Resources:
+  MyVPC2:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: "10.0.8.0/21"
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: "MyVPCfromCF"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: MyInternetGateway
+
+  VPCAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref MyVPC2
+      InternetGatewayId: !Ref InternetGateway   
+
+  subnetName:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: "ap-northeast-1a"
+      MapPublicIpOnLaunch: true # パブリックIP自動付与設定
+      VpcId: !Ref MyVPC2
+      CidrBlock: "10.0.8.0/24"
+      Tags:
+        - Key: Name
+          Value: "subnet1fromCF"
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC2
+      CidrBlock: 10.0.9.0/24
+      AvailabilityZone: ap-northeast-1a 
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC2
+      Tags:
+        - Key: Name
+          Value: PublicRouteTable
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MyVPC2
+      Tags:
+        - Key: Name
+          Value: PrivateRouteTable        
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref subnetName
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable    
+
+  secGroupName:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: "GroupName-SG"
+      GroupDescription: "GroupDescription-SG"
+      VpcId: !Ref MyVPC2
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: "SGfromCF"
+
+  PrivateSG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: "PrivateInstanceSG"
+      GroupDescription: "Security group for private instances"
+      VpcId: !Ref MyVPC2
+      SecurityGroupIngress:
+        - IpProtocol: -1 
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 10.0.8.0/24
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: "PrivateSGfromCF"
+
+Outputs:
+  Subnet1:
+    Description: "Public Subnet ID"
+    Value: !Ref subnetName
+    Export:
+      Name: Subnet1Name
+
+
+  PrivateSubnetId:
+    Description: "Private Subnet ID"
+    Value: !Ref PrivateSubnet
+    Export:
+      Name: PrivateSubnetId
+
+  SG1:
+    Value: !Ref secGroupName
+    Export:
+      Name: SG1Name
+
+  SG2:
+    Value: !Ref PrivateSG
+    Export:
+      Name: SG2Name
